@@ -27,6 +27,13 @@ The CNN developed here is used to identify those pixels most likely to be shorel
 
 This code adapts the HED CNN architecture developed by [Xie and Tu (2015)](http://openaccess.thecvf.com/content_iccv_2015/papers/Xie_Holistically-Nested_Edge_Detection_ICCV_2015_paper.pdf) and is adapted from a PyTorch implementation by [buntyke](https://github.com/buntyke/pytorch-hed).
 
+### Folder structure
+    - The root folder contains the jupyter notebook files detailed below
+    - ./figures contains the printed outputs of the model
+    - ./functions contains the functions called by the jupyter notebooks implementing the HED CNN
+    - ./models contains pretrained model weights for the shoreline detection CNN
+    - ./test_sites contains some unseen trial images on which the model can be tested
+
 ### Training data
 The CNN model provided was trained on images from six sites monitored as a part of the [Water Research Laboratory](http://www.wrl.unsw.edu.au) (UNSW Syney) [coastal imaging program](http://ci.wrl.unsw.edu.au). Training images used were time-averaged and oblique. Checked shorelines form an existing database were used to train the model and were provided as vectors of U (width), V (height) pixel coordinates.
 
@@ -55,6 +62,8 @@ Anaconda environment with package requirements provided as `environment.yml`. Te
 - Post-processing:
     - The model output can be easily post-processed to remove small misclassified pixels.
     - This could be done with an adaptive thresholding and openCV blob tools (as we know we are looking for long continous and smooth shoreline edges)
+- Repository
+    - move the large files to a data host and implement a call to download these files within the code
 
 ## Issues
 This software is provided "as is", without warranty of any kind. If you encounter a problem/bug or have a question or suggestion, please use the "issues" tab on github. Otherwise, this software is unsupported.
