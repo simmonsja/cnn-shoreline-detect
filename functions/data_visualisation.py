@@ -6,6 +6,8 @@ import torchvision.utils as tutils
 
 import imageio
 
+import cv2
+
 ################################################################################
 ################################################################################
 
@@ -60,7 +62,7 @@ def plot_predictions(prntNum, dataX, dataY, dataPred, jj, thres):
 ################################################################################
 ################################################################################
 
-def plot_refined_predictions(prntNum, dataX, dataY, dataPred, thres,imReturn=False):
+def plot_refined_predictions(prntNum, dataX, dataY, dataPred, thres,cvClean=False,imReturn=False):
     '''
     Plot the refined and final predicitons through a weighted combination and
     thresholding of the layers. (Layers 2 and 3).
@@ -72,18 +74,53 @@ def plot_refined_predictions(prntNum, dataX, dataY, dataPred, thres,imReturn=Fal
     ax1.imshow(torch2plt(dataX))
     ax1.scatter(mask_to_uv(dataY[0,...])[0],mask_to_uv(dataY[0,...])[1],s=5,color='r',alpha=0.5)
 
-    # would be nice to implement some cleaning of the data to get a crisper shoreline
-    # detector = cv2.SimpleBlobDetector()
-    # keypoints = detector.detect(dataPred[1].numpy())
-    # im_with_keypoints = cv2.drawKeypoints(dataPred[1], keypoints, np.array([]), (0,0,255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
-    # # Show keypoints
-    # cv2.imshow("Keypoints", im_with_keypoints)
-    # BR
+    # # would be nice to implement some cleaning of the data to get a crisper shoreline
 
-    # perform a weighted combination
-    combined = dataPred[1]* 0.5 + dataPred[2] * 0.5
-    predMask = mask2binary(combined,thres)
-    ax1.scatter(mask_to_uv(predMask)[0],mask_to_uv(predMask)[1],s=5,color='m',alpha=0.07)
+    # for debugging
+    # plot_refined_predictions(10,
+    #                      dataX=imData,
+    #                      dataY=np.zeros(imData.shape),
+    #                      dataPred=model_pred,
+    #                      thres=0.8,
+    #                      imReturn=False)
+
+    if cvClean:
+        combined = dataPred[1]* 0.75 + dataPred[2] * 0.25
+        cvIm = (combined.numpy().squeeze()*255).astype(np.uint8)
+
+        # find the shoreline blobs as contours
+        ret,thresh = cv2.threshold(cvIm,int(thres*255),255,cv2.THRESH_BINARY)
+        contours, hierarchy = cv2.findContours(thresh,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+        # can we find some feature that distinguishes a shoreline?
+        isConvex = np.array([cv2.isContourConvex(_) for _ in contours])
+        area = np.array([cv2.contourArea(_) for _ in contours])
+        perimeter = np.array([cv2.arcLength(_,True) for _ in contours])
+        radius = []
+        for _ in contours:
+            _,tmpRadius = cv2.minEnclosingCircle(_)
+            radius.append(tmpRadius)
+        # Settle for just cutting down some noise at the moment
+        contInd = np.where((np.array(radius) > 0.25*np.array(radius).max()) & (perimeter > 0.25*perimeter.max()))[0]
+        #contInd = np.where((perimeter > np.quantile(perimeter,0.9)) & (area > np.quantile(area,0.9)))[0]
+        if contInd.shape[0] < 1:
+            contInd = np.array([np.array([_.shape[0] for _ in contours]).argmax()])
+        #ax1.scatter(contUV[:,0],contUV[:,1],s=5,color='m',alpha=0.7)
+
+        predMask = mask2binary(combined,thres)
+        predU = mask_to_uv(predMask)[0]
+        predV = mask_to_uv(predMask)[1]
+        contBool = np.full((predU.shape[0],),False)
+        for ii, (thisU, thisV) in enumerate(zip(predU,predV)):
+            thisBools = []
+            for _ in contInd:
+                thisBools.append(cv2.pointPolygonTest(contours[_],(thisU,thisV),True) > 0)
+            contBool[ii] = np.any(thisBools)
+        ax1.scatter(predU[contBool],predV[contBool],s=5,color='m',alpha=0.07)
+    else:
+        # # perform a weighted combination
+        combined = dataPred[1]* 0.5 + dataPred[2] * 0.5
+        predMask = mask2binary(combined,thres)
+        ax1.scatter(mask_to_uv(predMask)[0],mask_to_uv(predMask)[1],s=5,color='m',alpha=0.07)
 
     if imReturn:
         # this is for writing a gif output
@@ -105,8 +142,8 @@ def plot_refined_predictions(prntNum, dataX, dataY, dataPred, thres,imReturn=Fal
 ################################################################################
 ################################################################################
 
-def write_output_gif(gifName,dataX, dataY, dataPred, thres):
+def write_output_gif(gifName,dataX, dataY, dataPred, thres,cvClean=False):
     # write the final prediction into a gif for visualisation
     imageio.mimsave(gifName,
-                    [plot_refined_predictions(_,dataX, dataY, dataPred, thres,imReturn=True) for _ in np.arange(dataX.shape[0])],
+                    [plot_refined_predictions(_,dataX, dataY, dataPred, thres,cvClean,imReturn=True) for _ in np.arange(dataX.shape[0])],
                     fps=0.5)

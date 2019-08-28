@@ -7,7 +7,7 @@ Shoreline detection using a modified Hollistic Edge Detection (HED) Convolutiona
 
 ![Example CNN output](figures/unseen_output.gif)
 
-*Figure 1 - Identified shoreline 'edges' overlaid in magenta*
+*Figure 1 - CNN identified shoreline 'edges' overlaid in magenta*
 
 ## 1. Problem
 Shoreline detection methods are well established in the field of coastal imaging and seek to divide wet from dry pixels ([Harley et al., 2019](https://doi.org/10.1016/j.coastaleng.2019.04.003)). Existing methods have tended used pixel hue and intensity ([Plant and Holman, 1997](https://doi.org/10.1016/S0025-3227(97)00019-4); [Aarninkhof et al., 2003](https://doi.org/10.1016/S0378-3839(03)00064-4)), RGB colour channels (e.g., Turner et al., 2004; [Plant et al, 2007](https://doi.org/10.2112/1551-5036(2007)23[658:TPOSDM]2.0.CO;2)), and even machine learning techniques which seek to classify on a pixel-by-pixel basis ([Hoonhout et al, 2015](https://doi.org/10.1016/j.coastaleng.2015.07.010)). Many applications rely on the well validated threshold techniques based on the distribution of the RGB channels with excellent results (e.g., [Harley et al., 2019](https://doi.org/10.1016/j.coastaleng.2019.04.003))
@@ -25,7 +25,15 @@ However, when undertaking automated processing over years of image data, there a
 ## 2. Description
 The CNN developed here is used to identify those pixels most likely to be shoreline pixels with the aim of identifying an accurate region of interest. Once this is obtained, established and validated shoreline detection algorithms can search within this narrow band to find the precise shoreline. This repository seeks to test the usefulness of such an approach.
 
-This code adapts the HED CNN architecture developed by [Xie and Tu (2015)](http://openaccess.thecvf.com/content_iccv_2015/papers/Xie_Holistically-Nested_Edge_Detection_ICCV_2015_paper.pdf) and is adapted from a PyTorch implementation by [buntyke](https://github.com/buntyke/pytorch-hed).
+This code adapts the HED CNN architecture developed by [Xie and Tu (2015)](http://openaccess.thecvf.com/content_iccv_2015/papers/Xie_Holistically-Nested_Edge_Detection_ICCV_2015_paper.pdf) and is adapted from a PyTorch implementation by [buntyke](https://github.com/buntyke/pytorch-hed). The HED architecture outputs "side response" activation maps at various levels through the CNN, as shown in Figure 4. These are combined and thresholded to produce the final output as shown in Figure 5. OpenCV is used for some simple noise reduction on the final output.
+
+![Example existing shoreline detection methods](docs/example_activations.png)
+
+*Figure 4 - CNN activations maps from the side outputs with increasing deepness*
+
+![Example existing shoreline detection methods](docs/example_cnn_ouptut.png)
+
+*Figure 5 - CNN model output combining information from the side outputs and after noise reduction*
 
 ### Folder structure
     - The root folder contains the jupyter notebook files detailed below
